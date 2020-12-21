@@ -7,8 +7,8 @@ Created on Fri Nov 27 15:32:29 2020
 import os 
 import numpy as np 
 import requests
-
-
+import pubchempy as pc
+import re
 def get_patent_ids(cid):
     url_start = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/"
     url_end = "/xrefs/PatentID/JSON"
@@ -183,3 +183,74 @@ def thera_marker_match(db, thera, marker):
     marker = get_cids_of_marker(marker, db)
     
     return list(set(thera).intersection(marker))
+
+
+def get_smiles(cid): 
+    compound = pc.Compound.from_cid(cid)
+    return compound.isomeric_smiles
+
+
+def max_rings(smiles):    
+    max_num = 0
+    for i in smiles: 
+        try: 
+            if int(i) > max_num:
+                max_num = int(i)
+        except: 
+            continue
+    return max_num
+
+
+def is_halogen(smiles): 
+    
+    for atom in "Cl", "F", "Br", "I", "At":
+        regex1 = "C." + atom
+        regex2 = "C.." + atom
+        
+        if not re.search(regex1, smiles) is None or not re.search(regex2, smiles) is None: 
+            return True
+      
+    return False
+    
+def check_rings(smiles):
+    pos = []
+    rings = []
+    n = 0
+    for i in smiles:
+        try: 
+            rings.append(int(i))
+            pos.append(n)
+            n+=1
+        except: 
+            n+=1
+            continue
+        
+    unique = list(np.unique(np.array(rings)))
+    pos_double_ring =[]
+    for num in unique:
+        pos_i = None
+        for i in range(len(rings)): 
+            if rings[i] == num and pos_i == None: 
+                pos_i = i
+            elif rings[i] == num and i - pos_i != 1: 
+                pos_double_ring.append([pos_i, i])
+                
+    if len(pos_double_ring) == 0 :
+        return False
+    
+    coords = []
+    for i in pos_double_ring: 
+        coords.append([pos[i[0]], pos[i[1]]])
+    return (coords)
+rings = check_rings(clozapine)
+
+
+
+is_halogen(clozapine[rings[0][0]:rings[0][1]])
+
+
+            
+        
+            
+    
+        
